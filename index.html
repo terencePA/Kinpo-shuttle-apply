@@ -262,7 +262,7 @@
 </div>
 
 <script>
-    // Google Apps Script 網頁應用程式網址 (第 7 版)
+    // Google Apps Script 網頁應用程式網址 (第 8 版)
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbXyzzYumhL8rVIFhA3bRyaGuIhwKiVzDikYghx-VwpeyARUMMc7uEBEPXnIKdEEad/exec";
 
     let boardingList = JSON.parse(localStorage.getItem('shuttleBoardingList')) || [];
@@ -304,99 +304,61 @@
             return;
         }
 
-        // 1. 檢查當天是否重複登記
-        const isDuplicateToday = boardingList.some(item => item.id === empId && item.date === boardingDate);
-        if (isDuplicateToday) {
-            showStatus(`⚠️ 員工 [${empId}] 在 ${boardingDate} 已經登記過了！`, 'warn');
-            playBeep(false);
-            idInput.value = '';
-            idInput.focus();
-            return;
-        }
-
-        // 2. 檢查過去 7 天內是否已經登記超過 2 次
-        const currentDate = new Date(boardingDate);
-        const sevenDaysAgo = new Date(currentDate);
-        sevenDaysAgo.setDate(currentDate.getDate() - 7);
-
-        const recentCount = boardingList.filter(item => {
-            if (item.id !== empId) return false;
-            const itemDate = new Date(item.date);
-            return itemDate >= sevenDaysAgo && itemDate <= currentDate;
-        }).length;
-
-        if (recentCount >= 2) {
-            showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內已登記過 ${recentCount} 次（上限為 2 次）！`, 'warn');
-            playBeep(false);
-            idInput.value = '';
-            idInput.focus();
-            return;
-        }
-
         const now = new Date();
         const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
 
-        const record = {
-            date: boardingDate,
-            stop: stop,
-            bus: bus,
-            id: empId,
-            name: empName,
-            time: timeStr,
-            synced: true
-        };
-
-        boardingList.unshift(record);
-        saveAndRender();
-
-        idInput.value = '';
-        nameInput.value = '';
-        idInput.focus();
-        playBeep(true);
-
-        showStatus(`⏳ 正在同步至 Google 試算表...`, 'sync');
+        showStatus(`⏳ 正在傳送至雲端進行 7 天限乘檢核...`, 'sync');
 
         try {
-            // 使用隱藏 Form 提交機制同步至 Google 試算表
-            const form = document.createElement('form');
-            form.method = 'GET';
-            form.action = GOOGLE_SCRIPT_URL;
-            form.target = 'hidden_iframe';
+            // 利用 fetch 發送 GET 請求，並接收後端回傳的狀態結果
+            const queryParams = new URLSearchParams({
+                date: boardingDate,
+                stop: stop,
+                bus: bus,
+                id: empId,
+                name: empName,
+                time: timeStr
+            });
 
-            const dataObj = {
-                date: record.date,
-                stop: record.stop,
-                bus: record.bus,
-                id: record.id,
-                name: record.name,
-                time: record.time
+            // 注意：此處使用一般 fetch，Apps Script 部署為所有人可存取時，可正常接收回應
+            const response = await fetch(`${GOOGLE_SCRIPT_URL}?${queryParams.toString()}`, {
+                method: 'GET'
+            });
+            const result = await response.json();
+
+            // 如果後端判斷超過 7 天內 2 次限制而拒絕
+            if (result && result.status === "rejected") {
+                showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內已達 2 次乘車上限！`, 'warn');
+                playBeep(false);
+                idInput.value = '';
+                idInput.focus();
+                return;
+            }
+
+            // 若成功寫入
+            const record = {
+                date: boardingDate,
+                stop: stop,
+                bus: bus,
+                id: empId,
+                name: empName,
+                time: timeStr,
+                synced: true
             };
 
-            for (const key in dataObj) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = dataObj[key];
-                form.appendChild(input);
-            }
+            boardingList.unshift(record);
+            saveAndRender();
 
-            let iframe = document.getElementById('hidden_iframe');
-            if (!iframe) {
-                iframe = document.createElement('iframe');
-                iframe.name = 'hidden_iframe';
-                iframe.id = 'hidden_iframe';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-            }
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
+            idInput.value = '';
+            nameInput.value = '';
+            idInput.focus();
+            playBeep(true);
 
             showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${stop})`, 'success');
+
         } catch (error) {
             console.error("Sync Error:", error);
-            showStatus(`❌ 雲端同步失敗（資料已保留於本機）`, 'warn');
+            showStatus(`❌ 雲端連線失敗或遭到攔截`, 'warn');
         }
     }
 
