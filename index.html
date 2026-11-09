@@ -12,7 +12,7 @@
             --bg-color: #061121;
             --card-bg: #0F1E36;
             --border-color: #1E3A5F;
-            --accent-color: #FF7A00; /* 金寶風格活力橘 */
+            --accent-color: #FF7A00;
             --accent-hover: #E06C00;
             --text-color: #94A3B8;
             --title-color: #F8FAFC;
@@ -188,8 +188,19 @@
             </div>
 
             <div>
+                <label for="tripType" class="bi-text">
+                    <span class="zh" style="font-size:15px;">2. 搭乘類型 *</span>
+                    <span class="en">Trip Type *</span>
+                </label>
+                <select id="tripType">
+                    <option value="commute to work">上班搭車 (commute to work)</option>
+                    <option value="commute home">下班搭車 (commute home)</option>
+                </select>
+            </div>
+
+            <div>
                 <label for="shuttleStop" class="bi-text">
-                    <span class="zh" style="font-size:15px;">2. 搭乘站點 / 路線 *</span>
+                    <span class="zh" style="font-size:15px;">3. 搭乘站點 / 路線 *</span>
                     <span class="en">Shuttle Stop *</span>
                 </label>
                 <select id="shuttleStop">
@@ -211,7 +222,7 @@
 
             <div>
                 <label for="busNumber" class="bi-text">
-                    <span class="zh" style="font-size:15px;">3. 車次 / 車牌號碼</span>
+                    <span class="zh" style="font-size:15px;">4. 車次 / 車牌號碼</span>
                     <span class="en">Bus / Plate No.</span>
                 </label>
                 <input type="text" id="busNumber" placeholder="例如：Bus-01 或車牌號碼 / e.g., Bus-01" />
@@ -219,15 +230,15 @@
 
             <div>
                 <label for="empId" class="bi-text">
-                    <span class="zh" style="font-size:15px;">4. 員工 ID (掃描或手動輸入) *</span>
+                    <span class="zh" style="font-size:15px;">5. 員工 ID (掃描或手動輸入) *</span>
                     <span class="en">Employee ID *</span>
                 </label>
                 <input type="text" id="empId" placeholder="刷卡/掃條碼或輸入 ID / Scan or enter ID" autofocus />
             </div>
 
-            <div style="grid-column: 1 / -1;">
+            <div>
                 <label for="empName" class="bi-text">
-                    <span class="zh" style="font-size:15px;">5. 員工姓名 / 備註</span>
+                    <span class="zh" style="font-size:15px;">6. 員工姓名 / 備註</span>
                     <span class="en">Employee Name / Note</span>
                 </label>
                 <input type="text" id="empName" placeholder="輸入姓名或部門 / Enter name or department" />
@@ -262,6 +273,7 @@
                     <tr>
                         <th>#</th>
                         <th>乘車日期 Date</th>
+                        <th>搭乘類型 Type</th>
                         <th>搭乘站點 Stop</th>
                         <th>車次 Bus</th>
                         <th>員工 ID ID</th>
@@ -278,7 +290,6 @@
 </div>
 
 <script>
-    // Google Apps Script 網頁應用程式網址 (第 9 版)
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbXyzzYumhL8rVIFhA3bRyaGuIhwKiVzDikYghx-VwpeyARUMMc7uEBEPXnIKdEEad/exec";
 
     let boardingList = JSON.parse(localStorage.getItem('shuttleBoardingList')) || [];
@@ -298,6 +309,7 @@
 
     function registerPassenger() {
         const boardingDate = document.getElementById('boardingDate').value;
+        const tripType = document.getElementById('tripType').value;
         const stop = document.getElementById('shuttleStop').value;
         const bus = document.getElementById('busNumber').value.trim() || '-';
         const idInput = document.getElementById('empId');
@@ -333,7 +345,7 @@
             if (scriptNode) scriptNode.remove();
 
             if (response && response.status === "rejected") {
-                showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內已達 2 次乘車上限！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] has reached the limit of 2 rides in the past 7 days!</span>`, 'warn');
+                showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內「${tripType}」已達 2 次上限！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] has reached the limit of 2 rides for ${tripType} in the past 7 days!</span>`, 'warn');
                 playBeep(false);
                 idInput.value = '';
                 idInput.focus();
@@ -343,6 +355,7 @@
             if (response && response.status === "success") {
                 const record = {
                     date: boardingDate,
+                    type: tripType,
                     stop: stop,
                     bus: bus,
                     id: empId,
@@ -359,7 +372,7 @@
                 idInput.focus();
                 playBeep(true);
 
-                showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${stop})<br><span style="font-size:12px; font-weight:normal;">Successfully registered & synced: ${empId}</span>`, 'success');
+                showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${tripType} / ${stop})<br><span style="font-size:12px; font-weight:normal;">Successfully registered & synced: ${empId}</span>`, 'success');
             } else {
                 showStatus(`❌ 雲端寫入發生錯誤：${response.message || '未知錯誤'}<br><span style="font-size:12px; font-weight:normal;">Cloud write error</span>`, 'warn');
             }
@@ -367,6 +380,7 @@
 
         const queryParams = new URLSearchParams({
             date: boardingDate,
+            type: tripType,
             stop: stop,
             bus: bus,
             id: empId,
@@ -414,7 +428,7 @@
         tbody.innerHTML = '';
 
         if (boardingList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px;">尚無登記資料 / No records yet</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px;">尚無登記資料 / No records yet</td></tr>`;
             return;
         }
 
@@ -428,6 +442,7 @@
             tr.innerHTML = `
                 <td>${rowNumber}</td>
                 <td>${item.date}</td>
+                <td><span style="color:#3B82F6; font-weight:bold;">${item.type || 'commute to work'}</span></td>
                 <td><span style="color:#FF7A00; font-weight:bold;">${item.stop}</span></td>
                 <td>${item.bus}</td>
                 <td style="font-weight:bold; color:#fff;">${item.id}</td>
@@ -449,6 +464,7 @@
         const exportData = [...boardingList].reverse().map((item, idx) => ({
             "序號 No.": idx + 1,
             "乘車日期 Date": item.date,
+            "搭乘類型 Type": item.type || 'commute to work',
             "搭乘站點 / 路線 Stop": item.stop,
             "車次 / 車牌號碼 Bus": item.bus,
             "員工 ID ID": item.id,
