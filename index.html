@@ -262,7 +262,7 @@
 </div>
 
 <script>
-    // Google Apps Script 網頁應用程式網址 (第 8 版)
+    // Google Apps Script 網頁應用程式網址 (第 9 版)
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbXyzzYumhL8rVIFhA3bRyaGuIhwKiVzDikYghx-VwpeyARUMMc7uEBEPXnIKdEEad/exec";
 
     let boardingList = JSON.parse(localStorage.getItem('shuttleBoardingList')) || [];
@@ -280,7 +280,7 @@
         if (e.key === 'Enter') registerPassenger();
     });
 
-    async function registerPassenger() {
+    function registerPassenger() {
         const boardingDate = document.getElementById('boardingDate').value;
         const stop = document.getElementById('shuttleStop').value;
         const bus = document.getElementById('busNumber').value.trim() || '-';
@@ -309,25 +309,15 @@
 
         showStatus(`⏳ 正在傳送至雲端進行 7 天限乘檢核...`, 'sync');
 
-        try {
-            // 利用 fetch 發送 GET 請求，並接收後端回傳的狀態結果
-            const queryParams = new URLSearchParams({
-                date: boardingDate,
-                stop: stop,
-                bus: bus,
-                id: empId,
-                name: empName,
-                time: timeStr
-            });
+        // 使用 JSONP 透過動態載入 Script 標籤繞過 CORS 限制並取得後端回應
+        const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+        
+        window[callbackName] = function(response) {
+            delete window[callbackName];
+            const scriptNode = document.getElementById(callbackName);
+            if (scriptNode) scriptNode.remove();
 
-            // 注意：此處使用一般 fetch，Apps Script 部署為所有人可存取時，可正常接收回應
-            const response = await fetch(`${GOOGLE_SCRIPT_URL}?${queryParams.toString()}`, {
-                method: 'GET'
-            });
-            const result = await response.json();
-
-            // 如果後端判斷超過 7 天內 2 次限制而拒絕
-            if (result && result.status === "rejected") {
+            if (response && response.status === "rejected") {
                 showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內已達 2 次乘車上限！`, 'warn');
                 playBeep(false);
                 idInput.value = '';
@@ -335,31 +325,51 @@
                 return;
             }
 
-            // 若成功寫入
-            const record = {
-                date: boardingDate,
-                stop: stop,
-                bus: bus,
-                id: empId,
-                name: empName,
-                time: timeStr,
-                synced: true
-            };
+            if (response && response.status === "success") {
+                const record = {
+                    date: boardingDate,
+                    stop: stop,
+                    bus: bus,
+                    id: empId,
+                    name: empName,
+                    time: timeStr,
+                    synced: true
+                };
 
-            boardingList.unshift(record);
-            saveAndRender();
+                boardingList.unshift(record);
+                saveAndRender();
 
-            idInput.value = '';
-            nameInput.value = '';
-            idInput.focus();
-            playBeep(true);
+                idInput.value = '';
+                nameInput.value = '';
+                idInput.focus();
+                playBeep(true);
 
-            showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${stop})`, 'success');
+                showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${stop})`, 'success');
+            } else {
+                showStatus(`❌ 雲端寫入發生錯誤：${response.message || '未知錯誤'}`, 'warn');
+            }
+        };
 
-        } catch (error) {
-            console.error("Sync Error:", error);
-            showStatus(`❌ 雲端連線失敗或遭到攔截`, 'warn');
-        }
+        const queryParams = new URLSearchParams({
+            date: boardingDate,
+            stop: stop,
+            bus: bus,
+            id: empId,
+            name: empName,
+            time: timeStr,
+            callback: callbackName
+        });
+
+        const script = document.createElement('script');
+        script.id = callbackName;
+        script.src = `${GOOGLE_SCRIPT_URL}?${queryParams.toString()}`;
+        script.onerror = function() {
+            showStatus(`❌ 雲端連線失敗`, 'warn');
+            delete window[callbackName];
+            script.remove();
+        };
+
+        document.body.appendChild(script);
     }
 
     function deleteRecord(index) {
