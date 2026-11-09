@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>接駁車人員上車登記系統 / Shuttle Boarding Registration</title>
+    <title>金寶電子接駁車人員上車登記系統 / Kinpo Shuttle Registration</title>
     <!-- 引入 SheetJS 用於匯出 Excel 檔案 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
         :root {
-            --bg-color: #0A192F;
-            --card-bg: #112240;
-            --border-color: #233554;
-            --accent-color: #F5A623;
-            --text-color: #8892B0;
-            --title-color: #FFFFFF;
-            --success-color: #2e7d32;
-            --danger-color: #c62828;
-            --info-color: #1976d2;
+            --bg-color: #061121;
+            --card-bg: #0F1E36;
+            --border-color: #1E3A5F;
+            --accent-color: #FF7A00; /* 金寶風格活力橘 */
+            --accent-hover: #E06C00;
+            --text-color: #94A3B8;
+            --title-color: #F8FAFC;
+            --success-color: #10B981;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
         }
 
         body {
@@ -34,101 +35,114 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-top: 5px solid var(--accent-color);
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 28px;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.6);
         }
 
-        .bi-text { display: flex; flex-direction: column; gap: 2px; }
-        .zh { font-size: 16px; color: var(--title-color); font-weight: bold; }
-        .en { font-size: 13px; color: var(--text-color); font-weight: normal; }
-
-        h1 {
-            text-align: center;
-            margin-top: 0;
-            padding-bottom: 12px;
+        .header-box {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-bottom: 16px;
             border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
         }
-        h1 .zh { font-size: 24px; }
-        h1 .en { font-size: 15px; }
+
+        .logo-img {
+            height: 48px;
+            object-fit: contain;
+            background: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .bi-text { display: flex; flex-direction: column; gap: 3px; }
+        .zh { font-size: 20px; color: var(--title-color); font-weight: bold; }
+        .en { font-size: 13px; color: var(--accent-color); font-weight: normal; }
 
         .section {
             margin-bottom: 20px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
             border: 1px solid var(--border-color);
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 16px;
         }
 
         @media (max-width: 600px) {
             .form-grid { grid-template-columns: 1fr; }
+            .header-box { flex-direction: column; text-align: center; }
         }
 
         input[type="text"], input[type="date"], select {
             width: 100%;
             padding: 12px;
-            border-radius: 4px;
+            border-radius: 6px;
             border: 1px solid var(--border-color);
-            background: #0a192f;
+            background: #081424;
             color: #fff;
             box-sizing: border-box;
-            font-size: 16px;
+            font-size: 15px;
             margin-top: 6px;
             color-scheme: dark;
         }
 
-        input:focus, select:focus { outline: none; border-color: var(--accent-color); }
+        input:focus, select:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(255, 122, 0, 0.2); }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .btn-group { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
 
         button {
             border: none;
             padding: 12px 18px;
             font-size: 15px;
             font-weight: bold;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
             flex: 1;
             min-width: 140px;
         }
-        button:hover { opacity: 0.9; }
+        button:hover { opacity: 0.95; transform: translateY(-1px); }
 
-        .btn-primary { background-color: var(--accent-color); color: var(--bg-color); }
+        .btn-primary { background-color: var(--accent-color); color: #FFFFFF; }
         .btn-export { background-color: var(--success-color); color: #fff; }
         .btn-clear { background-color: var(--danger-color); color: #fff; flex: 0 0 auto; }
         .btn-del {
             background-color: transparent;
-            color: #ef9a9a;
-            border: 1px solid #ef9a9a;
+            color: #FCA5A5;
+            border: 1px solid #FCA5A5;
             padding: 4px 10px;
             font-size: 12px;
             min-width: auto;
+            border-radius: 4px;
         }
+        .btn-del:hover { background-color: rgba(239, 68, 68, 0.2); }
 
         .status-msg {
-            margin-top: 12px;
-            padding: 10px;
-            border-radius: 4px;
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 6px;
             text-align: center;
             font-weight: bold;
             display: none;
+            font-size: 15px;
+            line-height: 1.5;
         }
-        .status-success { background-color: rgba(46, 125, 50, 0.2); border: 1px solid var(--success-color); color: #81c784; }
-        .status-warn { background-color: rgba(245, 166, 35, 0.2); border: 1px solid var(--accent-color); color: #ffd54f; }
-        .status-sync { background-color: rgba(25, 118, 210, 0.2); border: 1px solid var(--info-color); color: #64b5f6; }
+        .status-success { background-color: rgba(16, 185, 129, 0.15); border: 1px solid var(--success-color); color: #34D399; }
+        .status-warn { background-color: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: #F87171; }
+        .status-sync { background-color: rgba(59, 130, 246, 0.15); border: 1px solid var(--info-color); color: #60A5FA; }
 
         .summary-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             flex-wrap: wrap;
             gap: 10px;
         }
@@ -136,36 +150,38 @@
         .badge-count {
             background-color: var(--info-color);
             color: #fff;
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
             font-size: 14px;
             font-weight: bold;
         }
 
-        .table-container { overflow-x: auto; max-height: 400px; overflow-y: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; color: #e6f1ff; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 14px; white-space: nowrap; }
-        th { background-color: #0a192f; color: var(--accent-color); position: sticky; top: 0; }
-        .sync-tag { font-size: 12px; padding: 2px 6px; border-radius: 4px; }
-        .synced { background: rgba(46, 125, 50, 0.3); color: #81c784; }
-        .sync-err { background: rgba(198, 40, 40, 0.3); color: #ef9a9a; }
+        .table-container { overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 6px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; text-align: left; color: #E2E8F0; }
+        th, td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); font-size: 14px; white-space: nowrap; }
+        th { background-color: #081424; color: var(--accent-color); position: sticky; top: 0; z-index: 10; }
+        tr:hover { background-color: rgba(255, 255, 255, 0.02); }
+        .sync-tag { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
+        .synced { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+        .sync-err { background: rgba(239, 68, 68, 0.2); color: #F87171; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>
+    <div class="header-box">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy7H-SA1LuOiFCzXNE_nO7PNeN3K1BDv_tC5LPdHROEw&s=10" alt="Kinpo Logo" class="logo-img">
         <div class="bi-text">
-            <span class="zh">📋 接駁車人員上車登記系統</span>
-            <span class="en">Shuttle Bus Boarding Registration</span>
+            <span class="zh">金寶電子接駁車人員上車登記系統</span>
+            <span class="en">KINPO ELECTRONICS - Shuttle Bus Boarding Registration</span>
         </div>
-    </h1>
+    </div>
 
     <div class="section">
         <div class="form-grid">
             <div>
                 <label for="boardingDate" class="bi-text">
-                    <span class="zh">1. 乘車日期 *</span>
+                    <span class="zh" style="font-size:15px;">1. 乘車日期 *</span>
                     <span class="en">Boarding Date *</span>
                 </label>
                 <input type="date" id="boardingDate" />
@@ -173,11 +189,11 @@
 
             <div>
                 <label for="shuttleStop" class="bi-text">
-                    <span class="zh">2. 搭乘站點 / 路線 *</span>
+                    <span class="zh" style="font-size:15px;">2. 搭乘站點 / 路線 *</span>
                     <span class="en">Shuttle Stop *</span>
                 </label>
                 <select id="shuttleStop">
-                    <option value="" disabled selected>-- 請選擇站點 --</option>
+                    <option value="" disabled selected>-- 請選擇站點 / Select Stop --</option>
                     <option value="SM LIPA">SM LIPA</option>
                     <option value="BANAY-BANAY">BANAY-BANAY</option>
                     <option value="ROB LIMA">ROB LIMA</option>
@@ -195,26 +211,26 @@
 
             <div>
                 <label for="busNumber" class="bi-text">
-                    <span class="zh">3. 車次 / 車牌號碼</span>
+                    <span class="zh" style="font-size:15px;">3. 車次 / 車牌號碼</span>
                     <span class="en">Bus / Plate No.</span>
                 </label>
-                <input type="text" id="busNumber" placeholder="例如：Bus-01 或車牌號碼" />
+                <input type="text" id="busNumber" placeholder="例如：Bus-01 或車牌號碼 / e.g., Bus-01" />
             </div>
 
             <div>
                 <label for="empId" class="bi-text">
-                    <span class="zh">4. 員工 ID (掃描或手動輸入) *</span>
+                    <span class="zh" style="font-size:15px;">4. 員工 ID (掃描或手動輸入) *</span>
                     <span class="en">Employee ID *</span>
                 </label>
-                <input type="text" id="empId" placeholder="刷卡/掃條碼或輸入 ID" autofocus />
+                <input type="text" id="empId" placeholder="刷卡/掃條碼或輸入 ID / Scan or enter ID" autofocus />
             </div>
 
             <div style="grid-column: 1 / -1;">
                 <label for="empName" class="bi-text">
-                    <span class="zh">5. 員工姓名 / 備註</span>
+                    <span class="zh" style="font-size:15px;">5. 員工姓名 / 備註</span>
                     <span class="en">Employee Name / Note</span>
                 </label>
-                <input type="text" id="empName" placeholder="輸入姓名或部門" />
+                <input type="text" id="empName" placeholder="輸入姓名或部門 / Enter name or department" />
             </div>
         </div>
 
@@ -230,13 +246,13 @@
     <div class="section">
         <div class="summary-bar">
             <div class="bi-text">
-                <span class="zh">本機已登記名單</span>
+                <span class="zh" style="font-size:15px;">本機已登記名單</span>
                 <span class="en">Local Log</span>
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <span class="badge-count" id="totalCount">總人數 Total: 0</span>
-                <button class="btn-export" onclick="exportToExcel()">📥 匯出 Excel</button>
-                <button class="btn-clear" onclick="clearAllRecords()">🗑️ 清空本機列表</button>
+                <button class="btn-export" onclick="exportToExcel()">📥 匯出 Excel / Export</button>
+                <button class="btn-clear" onclick="clearAllRecords()">🗑️ 清空列表 / Clear</button>
             </div>
         </div>
 
@@ -248,7 +264,7 @@
                         <th>乘車日期 Date</th>
                         <th>搭乘站點 Stop</th>
                         <th>車次 Bus</th>
-                        <th>員工 ID</th>
+                        <th>員工 ID ID</th>
                         <th>員工姓名 Name</th>
                         <th>登記時間 Time</th>
                         <th>雲端狀態 Status</th>
@@ -291,15 +307,15 @@
         const empName = nameInput.value.trim() || '-';
 
         if (!boardingDate) {
-            alert("請選擇「乘車日期」！");
+            alert("請選擇「乘車日期」！\nPlease select Boarding Date!");
             return;
         }
         if (!stop) {
-            alert("請先選擇「搭乘站點」！");
+            alert("請先選擇「搭乘站點」！\nPlease select Shuttle Stop!");
             return;
         }
         if (!empId) {
-            alert("請輸入或掃描「員工 ID」！");
+            alert("請輸入或掃描「員工 ID」！\nPlease enter Employee ID!");
             idInput.focus();
             return;
         }
@@ -307,9 +323,8 @@
         const now = new Date();
         const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
 
-        showStatus(`⏳ 正在傳送至雲端進行 7 天限乘檢核...`, 'sync');
+        showStatus(`⏳ 正在傳送至雲端進行 7 天限乘檢核...<br><span style="font-size:12px; font-weight:normal;">Sending to cloud for 7-day limit verification...</span>`, 'sync');
 
-        // 使用 JSONP 透過動態載入 Script 標籤繞過 CORS 限制並取得後端回應
         const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
         
         window[callbackName] = function(response) {
@@ -318,7 +333,7 @@
             if (scriptNode) scriptNode.remove();
 
             if (response && response.status === "rejected") {
-                showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內已達 2 次乘車上限！`, 'warn');
+                showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內已達 2 次乘車上限！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] has reached the limit of 2 rides in the past 7 days!</span>`, 'warn');
                 playBeep(false);
                 idInput.value = '';
                 idInput.focus();
@@ -344,9 +359,9 @@
                 idInput.focus();
                 playBeep(true);
 
-                showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${stop})`, 'success');
+                showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${stop})<br><span style="font-size:12px; font-weight:normal;">Successfully registered & synced: ${empId}</span>`, 'success');
             } else {
-                showStatus(`❌ 雲端寫入發生錯誤：${response.message || '未知錯誤'}`, 'warn');
+                showStatus(`❌ 雲端寫入發生錯誤：${response.message || '未知錯誤'}<br><span style="font-size:12px; font-weight:normal;">Cloud write error</span>`, 'warn');
             }
         };
 
@@ -364,7 +379,7 @@
         script.id = callbackName;
         script.src = `${GOOGLE_SCRIPT_URL}?${queryParams.toString()}`;
         script.onerror = function() {
-            showStatus(`❌ 雲端連線失敗`, 'warn');
+            showStatus(`❌ 雲端連線失敗<br><span style="font-size:12px; font-weight:normal;">Cloud connection failed</span>`, 'warn');
             delete window[callbackName];
             script.remove();
         };
@@ -373,7 +388,7 @@
     }
 
     function deleteRecord(index) {
-        if (confirm(`確定要從本機列表刪除員工 ${boardingList[index].id} 嗎？`)) {
+        if (confirm(`確定要從本機列表刪除員工 ${boardingList[index].id} 嗎？\nAre you sure to delete employee ${boardingList[index].id}?`)) {
             boardingList.splice(index, 1);
             saveAndRender();
         }
@@ -381,7 +396,7 @@
 
     function clearAllRecords() {
         if (boardingList.length === 0) return;
-        if (confirm("確定要清空本機顯示的列表嗎？")) {
+        if (confirm("確定要清空本機顯示的列表嗎？\nAre you sure to clear all local records?")) {
             boardingList = [];
             saveAndRender();
             document.getElementById('statusMsg').style.display = 'none';
@@ -406,20 +421,20 @@
         boardingList.forEach((item, index) => {
             const rowNumber = boardingList.length - index;
             const syncBadge = item.synced 
-                ? `<span class="sync-tag synced">☁️ 已同步</span>` 
-                : `<span class="sync-tag sync-err">⏳ 未同步</span>`;
+                ? `<span class="sync-tag synced">☁️ 已同步 Synced</span>` 
+                : `<span class="sync-tag sync-err">⏳ 未同步 Unsynced</span>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${rowNumber}</td>
                 <td>${item.date}</td>
-                <td><span style="color:#F5A623; font-weight:bold;">${item.stop}</span></td>
+                <td><span style="color:#FF7A00; font-weight:bold;">${item.stop}</span></td>
                 <td>${item.bus}</td>
                 <td style="font-weight:bold; color:#fff;">${item.id}</td>
                 <td>${item.name}</td>
                 <td>${item.time}</td>
                 <td>${syncBadge}</td>
-                <td><button class="btn-del" onclick="deleteRecord(${index})">刪除</button></td>
+                <td><button class="btn-del" onclick="deleteRecord(${index})">刪除 Delete</button></td>
             `;
             tbody.appendChild(tr);
         });
@@ -427,18 +442,18 @@
 
     function exportToExcel() {
         if (boardingList.length === 0) {
-            alert("目前沒有任何登記資料可匯出！");
+            alert("目前沒有任何登記資料可匯出！\nNo registration data to export!");
             return;
         }
 
         const exportData = [...boardingList].reverse().map((item, idx) => ({
-            "序號": idx + 1,
-            "乘車日期": item.date,
-            "搭乘站點 / 路線": item.stop,
-            "車次 / 車牌號碼": item.bus,
-            "員工 ID": item.id,
-            "員工姓名 / 備註": item.name,
-            "登記時間": item.time
+            "序號 No.": idx + 1,
+            "乘車日期 Date": item.date,
+            "搭乘站點 / 路線 Stop": item.stop,
+            "車次 / 車牌號碼 Bus": item.bus,
+            "員工 ID ID": item.id,
+            "員工姓名 / 備註 Name": item.name,
+            "登記時間 Time": item.time
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -446,12 +461,12 @@
         XLSX.utils.book_append_sheet(workbook, worksheet, "工作表1");
 
         const today = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `apply_${today}.xlsx`);
+        XLSX.writeFile(workbook, `Kinpo_Shuttle_${today}.xlsx`);
     }
 
     function showStatus(msg, type) {
         const statusDiv = document.getElementById('statusMsg');
-        statusDiv.innerText = msg;
+        statusDiv.innerHTML = msg;
         statusDiv.className = `status-msg ${type === 'success' ? 'status-success' : (type === 'sync' ? 'status-sync' : 'status-warn')}`;
         statusDiv.style.display = 'block';
     }
