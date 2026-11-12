@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>金寶電子接駁車人員上車登記系統 / Kinpo Shuttle Registration</title>
-    <!-- 引入 SheetJS 用於匯出 Excel 檔案 -->
+    <title>廠區接駁車自動驗證系統 / Shuttle Bus Verification System</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
     
     <style>
         :root {
-            --bg-color: #061121;
-            --card-bg: #0F1E36;
-            --border-color: #1E3A5F;
-            --accent-color: #FF7A00;
-            --accent-hover: #E06C00;
-            --text-color: #94A3B8;
-            --title-color: #F8FAFC;
-            --success-color: #10B981;
-            --danger-color: #EF4444;
-            --info-color: #3B82F6;
+            --bg-color: #0A192F;
+            --card-bg: #112240;
+            --border-color: #233554;
+            --accent-color: #F5A623;
+            --text-color: #8892B0;
+            --title-color: #FFFFFF;
+            --success-color: #2e7d32;
+            --error-color: #c62828;
         }
 
         body {
@@ -30,458 +28,421 @@
         }
 
         .container {
-            max-width: 920px;
+            max-width: 850px;
             margin: 0 auto;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-top: 5px solid var(--accent-color);
-            border-radius: 10px;
-            padding: 28px;
-            box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .header-box {
+        .bi-text {
             display: flex;
-            align-items: center;
-            gap: 16px;
-            padding-bottom: 16px;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .zh { font-size: 16px; color: var(--title-color); font-weight: bold; }
+        .en { font-size: 13px; color: var(--text-color); font-weight: normal; }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--border-color);
-            margin-bottom: 20px;
         }
-
-        .logo-img {
-            height: 48px;
-            object-fit: contain;
-            background: #ffffff;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-
-        .bi-text { display: flex; flex-direction: column; gap: 3px; }
-        .zh { font-size: 20px; color: var(--title-color); font-weight: bold; }
-        .en { font-size: 13px; color: var(--accent-color); font-weight: normal; }
+        h1 .zh { font-size: 24px; }
+        h1 .en { font-size: 16px; }
 
         .section {
             margin-bottom: 20px;
-            padding: 18px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
             border: 1px solid var(--border-color);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 600px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .header-box { flex-direction: column; text-align: center; }
         }
 
         input[type="text"], input[type="date"], select {
             width: 100%;
             padding: 12px;
-            border-radius: 6px;
+            border-radius: 4px;
             border: 1px solid var(--border-color);
-            background: #081424;
+            background: #0a192f;
             color: #fff;
             box-sizing: border-box;
-            font-size: 15px;
+            font-size: 16px;
             margin-top: 6px;
-            color-scheme: dark;
         }
-
-        input:focus, select:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(255, 122, 0, 0.2); }
-
-        .btn-group { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
 
         button {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
             border: none;
             padding: 12px 18px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex: 1;
-            min-width: 140px;
-        }
-        button:hover { opacity: 0.95; transform: translateY(-1px); }
-
-        .btn-primary { background-color: var(--accent-color); color: #FFFFFF; }
-        .btn-export { background-color: var(--success-color); color: #fff; }
-        .btn-clear { background-color: var(--danger-color); color: #fff; flex: 0 0 auto; }
-        .btn-del {
-            background-color: transparent;
-            color: #FCA5A5;
-            border: 1px solid #FCA5A5;
-            padding: 4px 10px;
-            font-size: 12px;
-            min-width: auto;
             border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
         }
-        .btn-del:hover { background-color: rgba(239, 68, 68, 0.2); }
+        button:hover { opacity: 0.9; }
+        .btn-ocr { background-color: #2196F3; color: white; }
 
-        .status-msg {
-            margin-top: 14px;
-            padding: 12px;
-            border-radius: 6px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
-            font-size: 15px;
-            line-height: 1.5;
-        }
-        .status-success { background-color: rgba(16, 185, 129, 0.15); border: 1px solid var(--success-color); color: #34D399; }
-        .status-warn { background-color: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: #F87171; }
-        .status-sync { background-color: rgba(59, 130, 246, 0.15); border: 1px solid var(--info-color); color: #60A5FA; }
+        .progress-container { width: 100%; background-color: #233554; border-radius: 4px; margin-top: 10px; overflow: hidden; display: none; }
+        .progress-bar { width: 0%; height: 8px; background-color: var(--accent-color); transition: width 0.3s ease; }
 
-        .summary-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .badge-count {
-            background-color: var(--info-color);
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .table-container { overflow-x: auto; max-height: 400px; overflow-y: auto; border-radius: 6px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; text-align: left; color: #E2E8F0; }
-        th, td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); font-size: 14px; white-space: nowrap; }
-        th { background-color: #081424; color: var(--accent-color); position: sticky; top: 0; z-index: 10; }
-        tr:hover { background-color: rgba(255, 255, 255, 0.02); }
-        .sync-tag { font-size: 12px; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
-        .synced { background: rgba(16, 185, 129, 0.2); color: #34D399; }
-        .sync-err { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+        .result-box { text-align: center; padding: 20px; border-radius: 8px; margin-top: 20px; font-size: 20px; font-weight: bold; display: none; }
+        .result-box.pass { background-color: rgba(46, 125, 50, 0.2); border: 2px solid var(--success-color); color: #81c784; }
+        .result-box.fail { background-color: rgba(198, 40, 40, 0.2); border: 2px solid var(--error-color); color: #ef9a9a; }
+        .detail-info { font-size: 16px; margin-top: 8px; font-weight: normal; }
+        .status-badge { font-size: 14px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 5px; }
+        .loaded { background-color: var(--success-color); color: #fff; }
+        .loading { background-color: #f57c00; color: #fff; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-box">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy7H-SA1LuOiFCzXNE_nO7PNeN3K1BDv_tC5LPdHROEw&s=10" alt="Kinpo Logo" class="logo-img">
+    <h1>
         <div class="bi-text">
-            <span class="zh">金寶電子接駁車人員上車登記系統</span>
-            <span class="en">KINPO ELECTRONICS - Shuttle Bus Boarding Registration</span>
+            <span class="zh">🚌 廠區接駁車自動驗證系統</span>
+            <span class="en">Shuttle Bus Automatic Verification System</span>
+        </div>
+    </h1>
+
+    <div class="section">
+        <label for="rideDate" class="bi-text">
+            <span class="zh">乘車日期</span>
+            <span class="en">Ride Date</span>
+        </label>
+        <input type="date" id="rideDate" />
+    </div>
+
+    <div class="section">
+        <label for="rideType" class="bi-text">
+            <span class="zh">搭乘類型</span>
+            <span class="en">Commute Type</span>
+        </label>
+        <select id="rideType">
+            <option value="commute to work">上班搭車 (Commute to work)</option>
+            <option value="commute home">下班搭車 (Commute home)</option>
+        </select>
+    </div>
+
+    <div class="section">
+        <label class="bi-text">
+            <span class="zh">1. 後端 Excel 資料庫狀態</span>
+            <span class="en">1. Backend Excel Database Status</span>
+        </label>
+        <div id="fileStatus">
+            <span class="status-badge loading">
+                <span class="zh">正在自動讀取伺服器內的 test.xlsx...</span><br>
+                <span class="en" style="font-size:12px;">Loading test.xlsx from server...</span>
+            </span>
         </div>
     </div>
 
     <div class="section">
-        <div class="form-grid">
-            <div>
-                <label for="boardingDate" class="bi-text">
-                    <span class="zh" style="font-size:15px;">1. 乘車日期 *</span>
-                    <span class="en">Boarding Date *</span>
-                </label>
-                <input type="date" id="boardingDate" />
-            </div>
+        <label for="currentStop" class="bi-text">
+            <span class="zh">2. 當前接駁車站點</span>
+            <span class="en">2. Current Shuttle Stop</span>
+        </label>
+        <select id="currentStop">
+            <option value="" disabled selected>-- 請選擇站點 / Select Shuttle Stop --</option>
+            <option value="SM LIPA">SM LIPA</option>
+            <option value="BANAY-BANAY">BANAY-BANAY</option>
+            <option value="ROB LIMA">ROB LIMA</option>
+            <option value="MALVAR">MALVAR</option>
+            <option value="TANAUAN">TANAUAN</option>
+            <option value="SAMBAT">SAMBAT</option>
+            <option value="SAN PABLO">SAN PABLO</option>
+            <option value="STO. TOMAS">STO. TOMAS</option>
+            <option value="GARCIA">GARCIA</option>
+            <option value="IBAAN/ROSARIO">IBAAN/ROSARIO</option>
+            <option value="CALAMBA">CALAMBA</option>
+            <option value="BATANGAS">BATANGAS</option>
+        </select>
+    </div>
 
-            <div>
-                <label for="tripType" class="bi-text">
-                    <span class="zh" style="font-size:15px;">2. 搭乘類型 *</span>
-                    <span class="en">Trip Type *</span>
-                </label>
-                <select id="tripType">
-                    <option value="commute to work">上班搭車 (commute to work)</option>
-                    <option value="commute home">下班搭車 (commute home)</option>
-                </select>
-            </div>
-
-            <div>
-                <label for="shuttleStop" class="bi-text">
-                    <span class="zh" style="font-size:15px;">3. 搭乘站點 / 路線 *</span>
-                    <span class="en">Shuttle Stop *</span>
-                </label>
-                <select id="shuttleStop">
-                    <option value="" disabled selected>-- 請選擇站點 / Select Stop --</option>
-                    <option value="SM LIPA">SM LIPA</option>
-                    <option value="BANAY-BANAY">BANAY-BANAY</option>
-                    <option value="ROB LIMA">ROB LIMA</option>
-                    <option value="MALVAR">MALVAR</option>
-                    <option value="TANAUAN">TANAUAN</option>
-                    <option value="SAMBAT">SAMBAT</option>
-                    <option value="SAN PABLO">SAN PABLO</option>
-                    <option value="STO. TOMAS">STO. TOMAS</option>
-                    <option value="GARCIA">GARCIA</option>
-                    <option value="IBAAN/ROSARIO">IBAAN/ROSARIO</option>
-                    <option value="CALAMBA">CALAMBA</option>
-                    <option value="BATANGAS">BATANGAS</option>
-                </select>
-            </div>
-
-            <div>
-                <label for="empId" class="bi-text">
-                    <span class="zh" style="font-size:15px;">4. 員工 ID (掃描或手動輸入) *</span>
-                    <span class="en">Employee ID *</span>
-                </label>
-                <input type="text" id="empId" placeholder="刷卡/掃條碼或輸入 ID / Scan or enter ID" autofocus />
-            </div>
-
-            <div style="grid-column: span 2;">
-                <label for="empName" class="bi-text">
-                    <span class="zh" style="font-size:15px;">5. 員工姓名 / 備註</span>
-                    <span class="en">Employee Name / Note</span>
-                </label>
-                <input type="text" id="empName" placeholder="輸入姓名或部門 / Enter name or department" />
-            </div>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn-primary" onclick="registerPassenger()">
-                ➕ 登記上車並同步至雲端 / Register & Sync
+    <div class="section">
+        <label for="scanInput" class="bi-text">
+            <span class="zh">3. 驗證與辨識 7 位數員工 ID</span>
+            <span class="en">3. Verify 7-Digit Employee ID</span>
+        </label>
+        <input type="text" id="scanInput" placeholder="刷卡、軟體辨識、手動輸入 7 位 ID / Swipe, OCR, or Manual ID" autofocus />
+        
+        <div style="margin-top: 10px;">
+            <button onclick="triggerPhotoOCR()" class="btn-ocr">
+                <span class="zh">📸 智慧軟體識別 7 位 ID (OCR)</span><br>
+                <span class="en" style="font-size:12px;">Smart 7-Digit ID OCR Scan</span>
             </button>
         </div>
-
-        <div id="statusMsg" class="status-msg"></div>
+        
+        <input type="file" id="ocrInputFile" accept="image/*" capture="environment" style="display:none;" onchange="handleOCR(this)" />
+        
+        <div id="actionStatus" style="text-align: center; margin-top: 12px; font-size: 14px; color: #ffeb3b; font-weight: bold;"></div>
+        <div id="progressContainer" class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
     </div>
 
-    <div class="section">
-        <div class="summary-bar">
-            <div class="bi-text">
-                <span class="zh" style="font-size:15px;">本機已登記名單</span>
-                <span class="en">Local Log</span>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <span class="badge-count" id="totalCount">總人數 Total: 0</span>
-                <button class="btn-export" onclick="exportToExcel()">📥 匯出 Excel / Export</button>
-                <button class="btn-clear" onclick="clearAllRecords()">🗑️ 清空列表 / Clear</button>
-            </div>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>乘車日期 Date</th>
-                        <th>搭乘類型 Type</th>
-                        <th>搭乘站點 Stop</th>
-                        <th>員工 ID ID</th>
-                        <th>員工姓名 Name</th>
-                        <th>登記時間 Time</th>
-                        <th>雲端狀態 Status</th>
-                        <th>操作 Action</th>
-                    </tr>
-                </thead>
-                <tbody id="recordTableBody"></tbody>
-            </table>
-        </div>
+    <div id="resultBox" class="result-box">
+        <div id="resultTitle"></div>
+        <div id="resultDetail" class="detail-info"></div>
+        <div id="correctStopDisplay" class="detail-info" style="font-weight: bold; color: #ffeb3b; margin-top: 6px;"></div>
     </div>
 </div>
 
 <script>
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbXyzzYumhL8rVIFhA3bRyaGuIhwKiVzDikYghx-VwpeyARUMMc7uEBEPXnIKdEEad/exec";
+    let excelData = [];
+    const WEB_APP_URL = "您的_Google_Apps_Script_網頁應用程式網址"; // 請填入您的 GAS 部署網址
 
-    let boardingList = JSON.parse(localStorage.getItem('shuttleBoardingList')) || [];
-
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('boardingDate').value = today;
-        renderTable();
+        document.getElementById('rideDate').value = today;
+
+        fetch('test.xlsx')
+            .then(res => res.arrayBuffer())
+            .then(buffer => {
+                const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                excelData = rawData.map(row => {
+                    let cleanRow = {};
+                    for (let key in row) {
+                        cleanRow[key.trim()] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+                    }
+                    return cleanRow;
+                });
+                document.getElementById('fileStatus').innerHTML = `
+                    <span class="status-badge loaded">
+                        <span class="zh">已成功自動載入伺服器名單，共 ${excelData.length} 筆資料</span><br>
+                        <span class="en" style="font-size:12px;">Loaded successfully, total ${excelData.length} records</span>
+                    </span>`;
+            })
+            .catch(err => {
+                document.getElementById('fileStatus').innerHTML = `
+                    <span class="status-badge" style="background-color:#c62828; color:#fff;">
+                        <span class="zh">自動載入失敗</span><br>
+                        <span class="en" style="font-size:12px;">Auto-load failed</span>
+                    </span>`;
+            });
     });
 
-    document.getElementById('empId').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') registerPassenger();
-    });
-    document.getElementById('empName').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') registerPassenger();
+    document.getElementById('scanInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && this.value.trim()) {
+            verifyAndRegister(this.value.trim());
+            this.value = '';
+        }
     });
 
-    function registerPassenger() {
-        const boardingDate = document.getElementById('boardingDate').value;
-        const tripType = document.getElementById('tripType').value;
-        const stop = document.getElementById('shuttleStop').value;
-        const idInput = document.getElementById('empId');
-        const nameInput = document.getElementById('empName');
+    function verifyAndRegister(scannedId) {
+        const currentStop = document.getElementById('currentStop').value;
+        const rideDate = document.getElementById('rideDate').value;
+        const rideType = document.getElementById('rideType').value;
+        const resultBox = document.getElementById('resultBox');
         
-        const empId = idInput.value.trim().toUpperCase();
-        const empName = nameInput.value.trim() || '-';
-
-        if (!boardingDate) {
-            alert("請選擇「乘車日期」！\nPlease select Boarding Date!");
+        if (!currentStop) { 
+            alert("請先選擇當前接駁車站點！\nPlease select current shuttle stop first!"); 
+            return; 
+        }
+        if (!rideDate) {
+            alert("請選擇乘車日期！\nPlease select ride date!");
             return;
         }
-        if (!stop) {
-            alert("請先選擇「搭乘站點」！\nPlease select Shuttle Stop!");
-            return;
-        }
-        if (!empId) {
-            alert("請輸入或掃描「員工 ID」！\nPlease enter Employee ID!");
-            idInput.focus();
-            return;
+        if (excelData.length === 0) { 
+            alert("名單尚未載入完成！\nDatabase is still loading!"); 
+            return; 
         }
 
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+        const matchedUser = excelData.find(item => {
+            const idKey = Object.keys(item).find(k => k.toLowerCase().includes('id') || k.includes('工號') || k.includes('員工編號'));
+            return idKey && String(item[idKey]).trim().toUpperCase() === String(scannedId).trim().toUpperCase();
+        });
 
-        showStatus(`⏳ 正在傳送至雲端進行 7 天限乘檢核...<br><span style="font-size:12px; font-weight:normal;">Sending to cloud for 7-day limit verification...</span>`, 'sync');
+        resultBox.style.display = 'block';
+        if (!matchedUser) {
+            resultBox.className = 'result-box fail';
+            document.getElementById('resultTitle').innerHTML = `
+                <div>❌ 查無此 ID 記錄</div>
+                <div style="font-size:14px; font-weight:normal;">ID Not Found in Database</div>`;
+            document.getElementById('resultDetail').innerText = `ID: ${scannedId}`;
+            document.getElementById('correctStopDisplay').innerText = '';
+            playAudio(false);
+            return;
+        }
 
-        const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
-        
-        window[callbackName] = function(response) {
-            delete window[callbackName];
-            const scriptNode = document.getElementById(callbackName);
-            if (scriptNode) scriptNode.remove();
+        const stopKey = Object.keys(matchedUser).find(k => k.toLowerCase().includes('shuttle') || k.toLowerCase().includes('stop') || k.includes('站'));
+        const userStop = stopKey ? String(matchedUser[stopKey]).trim() : '無紀錄';
 
-            if (response && response.status === "rejected") {
-                showStatus(`❌ 拒絕登記：員工 [${empId}] 在過去 7 天內「${tripType}」已達 2 次上限！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] has reached the limit of 2 rides for ${tripType} in the past 7 days!</span>`, 'warn');
-                playBeep(false);
-                idInput.value = '';
-                idInput.focus();
-                return;
-            }
+        if (userStop.toLowerCase() !== currentStop.toLowerCase()) {
+            resultBox.className = 'result-box fail';
+            document.getElementById('resultTitle').innerHTML = `
+                <div>⚠️ 站點不符 (MISMATCH)</div>
+                <div style="font-size:14px; font-weight:normal;">Shuttle Stop Mismatch</div>`;
+            document.getElementById('resultDetail').innerText = `ID: ${scannedId} | 當前 Current: ${currentStop}`;
+            document.getElementById('correctStopDisplay').innerHTML = `
+                <div>📍 該員工登記的正確站點：${userStop}</div>
+                <div style="font-size:14px; font-weight:normal;">Registered Stop: ${userStop}</div>`;
+            playAudio(false);
+            return;
+        }
 
-            if (response && response.status === "success") {
-                const record = {
-                    date: boardingDate,
-                    type: tripType,
-                    stop: stop,
-                    id: empId,
-                    name: empName,
-                    time: timeStr,
-                    synced: true
-                };
+        const empName = matchedUser.name || matchedUser.Employee_Name || "-";
+        const nowTime = new Date().toTimeString().split(' ')[0];
 
-                boardingList.unshift(record);
-                saveAndRender();
+        const statusDiv = document.getElementById('actionStatus');
+        statusDiv.innerHTML = "⏳ 正在傳送至雲端進行防呆檢核... / Checking cloud verification...";
 
-                idInput.value = '';
-                nameInput.value = '';
-                idInput.focus();
-                playBeep(true);
-
-                showStatus(`✅ 成功登記並同步至雲端：${empId} (${boardingDate} / ${tripType} / ${stop})<br><span style="font-size:12px; font-weight:normal;">Successfully registered & synced: ${empId}</span>`, 'success');
-            } else {
-                showStatus(`❌ 雲端寫入發生錯誤：${response.message || '未知錯誤'}<br><span style="font-size:12px; font-weight:normal;">Cloud write error</span>`, 'warn');
-            }
-        };
-
-        const queryParams = new URLSearchParams({
-            date: boardingDate,
-            type: tripType,
-            stop: stop,
-            bus: '-',
-            id: empId,
+        const params = new URLSearchParams({
+            id: scannedId,
+            date: rideDate,
+            stop: currentStop,
+            type: rideType,
             name: empName,
-            time: timeStr,
-            callback: callbackName
+            time: nowTime
         });
 
-        const script = document.createElement('script');
-        script.id = callbackName;
-        script.src = `${GOOGLE_SCRIPT_URL}?${queryParams.toString()}`;
-        script.onerror = function() {
-            showStatus(`❌ 雲端連線失敗<br><span style="font-size:12px; font-weight:normal;">Cloud connection failed</span>`, 'warn');
-            delete window[callbackName];
-            script.remove();
+        fetch(`${WEB_APP_URL}?${params.toString()}`)
+            .then(res => res.json())
+            .then(res => {
+                statusDiv.innerText = "";
+                if (res.status === "rejected") {
+                    resultBox.className = 'result-box fail';
+                    document.getElementById('resultTitle').innerHTML = `
+                        <div>❌ 拒絕登記 (Rejected)</div>
+                        <div style="font-size:14px; font-weight:normal;">${res.message}</div>`;
+                    document.getElementById('resultDetail').innerText = `ID: ${scannedId} (${empName})`;
+                    document.getElementById('correctStopDisplay').innerHTML = `
+                        <div>⚠️ 原因：同一天內已有登記紀錄，或 7 天內該類型已達 2 次上限！</div>
+                        <div style="font-size:14px; font-weight:normal;">Reason: Already registered today or limit reached!</div>`;
+                    playAudio(false);
+                } else if (res.status === "success") {
+                    resultBox.className = 'result-box pass';
+                    document.getElementById('resultTitle').innerHTML = `
+                        <div>✅ 登記並驗證成功 (SUCCESS)</div>
+                        <div style="font-size:14px; font-weight:normal;">Registered Successfully</div>`;
+                    document.getElementById('resultDetail').innerText = `ID: ${scannedId} (${empName})`;
+                    document.getElementById('correctStopDisplay').innerHTML = `
+                        <div>📍 站點 Stop：${userStop} | 類型 Type：${rideType}</div>
+                        <div style="font-size:14px; font-weight:normal;">Synced to Google Sheets</div>`;
+                    playAudio(true);
+                } else {
+                    alert("伺服器回應異常: " + (res.message || "Unknown error"));
+                }
+            })
+            .catch(err => {
+                statusDiv.innerText = "";
+                alert("雲端連線失敗 / Connection failed: " + err);
+            });
+    }
+
+    function triggerPhotoOCR() {
+        document.getElementById('ocrInputFile').click();
+    }
+
+    function preprocessImage(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width * 2;
+                canvas.height = img.height * 2;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    let val = avg > 140 ? 255 : 0; 
+                    data[i]     = val;
+                    data[i + 1] = val;
+                    data[i + 2] = val;
+                }
+                ctx.putImageData(imgData, 0, 0);
+                canvas.toBlob(blob => callback(blob), 'image/png');
+            };
+            img.src = e.target.result;
         };
-
-        document.body.appendChild(script);
+        reader.readAsDataURL(file);
     }
 
-    function deleteRecord(index) {
-        if (confirm(`確定要從本機列表刪除員工 ${boardingList[index].id} 嗎？\nAre you sure to delete employee ${boardingList[index].id}?`)) {
-            boardingList.splice(index, 1);
-            saveAndRender();
+    function handleOCR(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const statusDiv = document.getElementById('actionStatus');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+
+            statusDiv.innerHTML = "⏳ 軟體影像處理中... / Processing image...";
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '20%';
+
+            preprocessImage(file, function(processedBlob) {
+                statusDiv.innerHTML = "⏳ 正在辨識 7 位數 ID... / Recognizing 7-digit ID...";
+                progressBar.style.width = '40%';
+
+                Tesseract.recognize(
+                    processedBlob,
+                    'eng',
+                    { 
+                        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                const percent = Math.round(m.progress * 100);
+                                statusDiv.innerHTML = `⏳ 軟體辨識中... / Recognizing... ${percent}%`;
+                                progressBar.style.width = percent + '%';
+                            }
+                        }
+                    }
+                ).then(({ data: { text } }) => {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        statusDiv.innerText = "";
+                        progressContainer.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 300);
+
+                    let cleanedText = text.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+                    const match = cleanedText.match(/[A-Z0-9]{7}/);
+                    
+                    if (match) {
+                        const detectedId = match[0];
+                        document.getElementById('scanInput').value = detectedId;
+                        verifyAndRegister(detectedId);
+                    } else {
+                        alert("未能抓取到 7 位數 ID，預處理後辨識出的文字為：\nFailed to extract 7-digit ID. Recognized text:\n" + text);
+                    }
+                    input.value = '';
+                }).catch(err => {
+                    statusDiv.innerText = "";
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    alert("辨識失敗 / Recognition failed: " + err);
+                    input.value = '';
+                });
+            });
         }
     }
 
-    function clearAllRecords() {
-        if (boardingList.length === 0) return;
-        if (confirm("確定要清空本機顯示的列表嗎？\nAre you sure to clear all local records?")) {
-            boardingList = [];
-            saveAndRender();
-            document.getElementById('statusMsg').style.display = 'none';
-        }
-    }
-
-    function saveAndRender() {
-        localStorage.setItem('shuttleBoardingList', JSON.stringify(boardingList));
-        renderTable();
-    }
-
-    function renderTable() {
-        const tbody = document.getElementById('recordTableBody');
-        document.getElementById('totalCount').innerText = `總人數 Total: ${boardingList.length}`;
-        tbody.innerHTML = '';
-
-        if (boardingList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px;">尚無登記資料 / No records yet</td></tr>`;
-            return;
-        }
-
-        boardingList.forEach((item, index) => {
-            const rowNumber = boardingList.length - index;
-            const syncBadge = item.synced 
-                ? `<span class="sync-tag synced">☁️ 已同步 Synced</span>` 
-                : `<span class="sync-tag sync-err">⏳ 未同步 Unsynced</span>`;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${rowNumber}</td>
-                <td>${item.date}</td>
-                <td><span style="color:#3B82F6; font-weight:bold;">${item.type || 'commute to work'}</span></td>
-                <td><span style="color:#FF7A00; font-weight:bold;">${item.stop}</span></td>
-                <td style="font-weight:bold; color:#fff;">${item.id}</td>
-                <td>${item.name}</td>
-                <td>${item.time}</td>
-                <td>${syncBadge}</td>
-                <td><button class="btn-del" onclick="deleteRecord(${index})">刪除 Delete</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function exportToExcel() {
-        if (boardingList.length === 0) {
-            alert("目前沒有任何登記資料可匯出！\nNo registration data to export!");
-            return;
-        }
-
-        const exportData = [...boardingList].reverse().map((item, idx) => ({
-            "序號 No.": idx + 1,
-            "乘車日期 Date": item.date,
-            "搭乘類型 Type": item.type || 'commute to work',
-            "搭乘站點 / 路線 Stop": item.stop,
-            "員工 ID ID": item.id,
-            "員工姓名 / 備註 Name": item.name,
-            "登記時間 Time": item.time
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "工作表1");
-
-        const today = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `Kinpo_Shuttle_${today}.xlsx`);
-    }
-
-    function showStatus(msg, type) {
-        const statusDiv = document.getElementById('statusMsg');
-        statusDiv.innerHTML = msg;
-        statusDiv.className = `status-msg ${type === 'success' ? 'status-success' : (type === 'sync' ? 'status-sync' : 'status-warn')}`;
-        statusDiv.style.display = 'block';
-    }
-
-    function playBeep(isSuccess) {
+    function playAudio(isSuccess) {
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
             osc.connect(ctx.destination);
-            osc.frequency.setValueAtTime(isSuccess ? 880 : 300, ctx.currentTime);
-            osc.start();
-            osc.stop(ctx.currentTime + (isSuccess ? 0.12 : 0.25));
+            if (isSuccess) {
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } else {
+                osc.frequency.setValueAtTime(300, ctx.currentTime);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            }
         } catch(e) {}
     }
 </script>
