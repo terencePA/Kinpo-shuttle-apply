@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>金寶電子接駁車人員上車登記系統 / Kinpo Shuttle Registration</title>
+    <!-- 引入 SheetJS 用於匯出 Excel 檔案 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
@@ -280,6 +281,7 @@
 </div>
 
 <script>
+    // 請確認此處為您最新「建立全新部署」產生的 Google Apps Script 網址
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbXyzzYumhL8rVIFhA3bRyaGuIhwKiVzDikYghx-VwpeyARUMMc7uEBEPXnIKdEEad/exec";
 
     let boardingList = JSON.parse(localStorage.getItem('shuttleBoardingList')) || [];
@@ -321,7 +323,7 @@
             return;
         }
 
-        // 檢查本機快取中，同一天該員工是否已經登記過（無論站別或類型）
+        // 本機快取防呆：同一天該員工不可重複登記或更換站別
         const duplicateToday = boardingList.find(item => item.date === boardingDate && item.id === empId);
         if (duplicateToday) {
             showStatus(`❌ 登記拒絕：員工 [${empId}] 在 ${boardingDate} 已經登記過（站點：${duplicateToday.stop}），同一天不可重複登記或更換站別！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] already registered on ${boardingDate}. No duplicate or different stops allowed on the same day!</span>`, 'warn');
@@ -345,7 +347,7 @@
 
             if (response && response.status === "rejected") {
                 if (response.reason === "duplicate_today") {
-                    showStatus(`❌ 雲端拒絕：員工 [${empId}] 在 ${boardingDate} 已經有登記紀錄，同一天不可重複登記！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] already has a record on ${boardingDate}!</span>`, 'warn');
+                    showStatus(`❌ 雲端拒絕：員工 [${empId}] 在 ${boardingDate} 已經有登記紀錄，同一天不可重複登記或更換站別！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] already has a record on ${boardingDate}!</span>`, 'warn');
                 } else {
                     showStatus(`❌ 7天限乘拒絕：員工 [${empId}] 在過去 7 天內「${tripType}」已達 2 次上限！<br><span style="font-size:12px; font-weight:normal;">Rejected: Employee [${empId}] has reached the limit of 2 rides for ${tripType} in the past 7 days!</span>`, 'warn');
                 }
